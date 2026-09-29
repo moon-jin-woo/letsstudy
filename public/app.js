@@ -426,6 +426,23 @@ function applyMeta(){
   $('#heroTitle').textContent=m.title||'문제 세트';
   $('#heroDesc').textContent=m.description||'문제를 풀고 바로 채점하세요.';
 }
+function renderSetLibrary(){
+  const box=$('#setLibrary');
+  if(!box)return;
+  box.innerHTML=REGISTRY.sets.map(x=>`
+    <article class="set-card">
+      <div class="set-subject">${esc(x.subject||'문제집')}</div>
+      <h2>${esc(x.title)}</h2>
+      <p>${esc(x.description||'')}</p>
+      <div class="set-tags">${(x.tags||[]).map(t=>`<span>${esc(t)}</span>`).join('')}</div>
+      <button class="btn primary set-open" data-open-set="${esc(x.id)}">문제 풀기</button>
+    </article>`).join('');
+  $('[data-open-set]').forEach(b=>b.addEventListener('click',async()=>{
+    await selectSet(b.dataset.openSet);
+    switchView('mcq');
+    document.querySelector('.tabs')?.scrollIntoView({behavior:'smooth',block:'start'});
+  }));
+}
 function renderSetSelect(){
   const s=$('#setSelect');
   s.innerHTML=REGISTRY.sets.map(x=>`<option value="${esc(x.id)}" ${x.id===CURRENT_SET?'selected':''}>${esc(x.subject)} · ${esc(x.title)}</option>`).join('');
@@ -443,7 +460,7 @@ async function selectSet(id){
     if(meta.id==="korean2-midterm") DATA=FALLBACK_SET;
     else throw new Error('문제 세트를 불러오지 못했습니다: '+err.message);
   }
-  loadState();applyMeta();renderSetSelect();renderDashboard();renderMcq();renderEssay();renderResults();
+  loadState();applyMeta();renderSetLibrary();renderSetSelect();renderDashboard();renderMcq();renderEssay();renderResults();
   const u=new URL(location.href);u.searchParams.set('set',CURRENT_SET);history.replaceState(null,'',u);
 }
 function renderDashboard(){
@@ -543,6 +560,7 @@ async function init(){
   }
   if(!REGISTRY?.sets?.length) REGISTRY=FALLBACK_REGISTRY;
   const requested=new URL(location.href).searchParams.get('set');
+  renderSetLibrary();
   await selectSet(REGISTRY.sets.some(x=>x.id===requested)?requested:REGISTRY.sets[0].id);
 }
 init().catch(e=>{document.body.innerHTML=`<main class="shell"><div class="card"><h2>문제 세트를 불러오지 못했습니다.</h2><p>${esc(e.message)}</p></div></main>`;});
