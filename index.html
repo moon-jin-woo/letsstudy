@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>Let's Study</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Let's Study <span id="brandSubject">문제풀이</span></div>
+    <div id="saveState" class="save-state">자동 저장</div>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow" id="heroEyebrow">문제 세트</p>
+      <h1 id="heroTitle">불러오는 중...</h1>
+      <p id="heroDesc"></p>
+    </section>
+
+    <section>
+      <div class="section-title">내 문제집</div>
+      <div id="setLibrary" class="set-library"></div>
+    </section>
+
+    <section class="card selector-card">
+      <div class="unit">문제 세트 빠른 선택</div>
+      <div class="selector-row">
+        <select id="setSelect" aria-label="문제 세트 선택"></select>
+        <a class="btn secondary link-btn" href="./builder.html">새 세트 템플릿 만들기</a>
+      </div>
+    </section>
+
+    <section id="dashboard" class="dashboard"></section>
+
+    <nav class="tabs" aria-label="학습 모드">
+      <button data-view="mcq" class="tab active">객관식</button>
+      <button data-view="essay" class="tab">서술형 AI 채점</button>
+      <button data-view="results" class="tab">결과 분석</button>
+    </nav>
+
+    <section id="mcqView" class="view"></section>
+    <section id="essayView" class="view hidden"></section>
+    <section id="resultsView" class="view hidden"></section>
+  </main>
+  <script src="./app.js" defer></script>
+</body>
+</html>
