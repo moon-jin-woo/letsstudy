@@ -1,0 +1,7 @@
+{
+  "name": "letsstudy-korean-ai-grader",
+  "version": "1.0.0",
+  "private": true,
+  "description": "공통국어2 객관식 + AI 서술형 채점 웹앱",
+  "engines": {"node": ">=18"}
+}
