@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>문제 세트 템플릿 만들기 · Let's Study</title><link rel="stylesheet" href="/styles.css"></head>
+<body><header class="topbar"><div class="brand">Let's Study <span>세트 제작기</span></div><a class="btn secondary link-btn" href="/">문제 풀러 가기</a></header>
+<main class="shell"><section class="hero"><p class="eyebrow">재사용 가능한 문제 세트</p><h1>새 과목용 JSON 만들기</h1><p>코드는 그대로 두고 문제 데이터만 추가하는 구조입니다. 아래 내용을 채운 뒤 JSON 파일을 내려받아 <code>public/sets/</code>에 넣으면 됩니다.</p></section>
+<section class="card"><div class="form-grid">
+<label>세트 ID<input id="id" value="new-set" placeholder="english-midterm"></label>
+<label>과목<input id="subject" value="과목명"></label>
+<label>제목<input id="title" value="새 시험 대비"></label>
+<label>수준<input id="level" value="고등학교 1학년"></label>
+<label class="wide">설명<input id="description" value="객관식 + 서술형 문제 세트"></label>
+<label class="wide">AI 채점자 역할<input id="grader" value="고등학교 1학년 해당 과목 서술형 채점"></label>
+</div></section>
+<section class="card"><div class="question">객관식 배열(JSON)</div><textarea id="mcq" class="codebox">[
+  {
+    "id": 1,
+    "unit": "1단원",
+    "q": "문제 내용",
+    "options": ["선지 1", "선지 2", "선지 3", "선지 4", "선지 5"],
+    "answer": 0,
+    "explanation": "정답 해설"
+  }
+]</textarea></section>
+<section class="card"><div class="question">서술형 배열(JSON)</div><textarea id="essay" class="codebox">[
+  {
+    "id": 2,
+    "unit": "1단원",
+    "q": "서술형 문제",
+    "cond": "작성 조건",
+    "model": "모범 답안",
+    "rubric": ["채점 요소 1", "채점 요소 2", "채점 요소 3"]
+  }
+]</textarea>
+<div class="toolbar"><button class="btn primary" id="validate">검사하기</button><button class="btn secondary" id="download">JSON 다운로드</button></div><div id="status" class="feedback hidden"></div></section>
+<section class="card"><div class="question">등록용 index.json 항목</div><p class="small">생성한 세트 파일을 GitHub에 올린 뒤 아래 항목을 <code>public/sets/index.json</code>의 <code>sets</code> 배열에 추가하면 선택 메뉴에 나타납니다.</p><pre id="registry" class="codepreview"></pre></section></main>
+<script>
+const $=s=>document.querySelector(s);function data(){const id=$('#id').value.trim();if(!/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(id))throw Error('세트 ID는 영문/숫자/하이픈/언더스코어만 사용하세요.');const mcq=JSON.parse($('#mcq').value),essay=JSON.parse($('#essay').value);if(!Array.isArray(mcq)||!Array.isArray(essay))throw Error('객관식/서술형은 JSON 배열이어야 합니다.');return {meta:{id,subject:$('#subject').value.trim(),title:$('#title').value.trim(),description:$('#description').value.trim(),level:$('#level').value.trim(),version:1,grader_context:$('#grader').value.trim()},mcq,essay}}
+function registry(d){return {id:d.meta.id,subject:d.meta.subject,title:d.meta.title,description:d.meta.description,file:'/sets/'+d.meta.id+'.json',tags:[d.meta.level].filter(Boolean)}}
+function show(ok,msg){const s=$('#status');s.classList.remove('hidden');s.innerHTML='<strong class="'+(ok?'good':'bad')+'">'+(ok?'정상':'오류')+'</strong> · '+msg}
+function refresh(){try{const d=data();$('#registry').textContent=JSON.stringify(registry(d),null,2);return d}catch(e){$('#registry').textContent='';throw e}}
+$('#validate').onclick=()=>{try{refresh();show(true,'형식이 유효합니다.')}catch(e){show(false,e.message)}};
+$('#download').onclick=()=>{try{const d=refresh(),blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=d.meta.id+'.json';a.click();URL.revokeObjectURL(a.href);show(true,'JSON 파일을 만들었습니다.')}catch(e){show(false,e.message)}};
+['id','subject','title','description','level','grader','mcq','essay'].forEach(x=>$('#'+x).addEventListener('input',()=>{try{refresh()}catch{}}));try{refresh()}catch{}
+</script></body></html>
