@@ -437,7 +437,7 @@ function renderSetLibrary(){
       <div class="set-tags">${(x.tags||[]).map(t=>`<span>${esc(t)}</span>`).join('')}</div>
       <button class="btn primary set-open" data-open-set="${esc(x.id)}">문제 풀기</button>
     </article>`).join('');
-  $('[data-open-set]').forEach(b=>b.addEventListener('click',async()=>{
+  $$('[data-open-set]').forEach(b=>b.addEventListener('click',async()=>{
     await selectSet(b.dataset.openSet);
     switchView('mcq');
     document.querySelector('.tabs')?.scrollIntoView({behavior:'smooth',block:'start'});
@@ -487,7 +487,7 @@ function renderEssay(){
   const staticMode=location.hostname.endsWith('github.io');
   view.innerHTML=`<div class="notice">${staticMode?'GitHub Pages에서는 직접 AI 서버를 실행할 수 없습니다. 답안을 쓴 뒤 <b>ChatGPT 채점용 복사</b>를 누르면 채점 요청문이 복사됩니다.':'AI 채점은 배포 서버에 <code>OPENAI_API_KEY</code>가 설정되어 있을 때 작동합니다.'} 답안과 채점 기록은 이 브라우저에 세트별로 저장됩니다.</div>`+DATA.essay.map(q=>`<article class="card" id="essay-${q.id}"><div class="unit">${esc(q.unit||'')}</div><div class="question">${q.id}. ${esc(q.q)}</div><div class="conditions"><b>&lt;조건&gt;</b><br>${esc(q.cond||'없음')}</div><textarea class="answer-box" data-answer="${q.id}" placeholder="내 답안을 작성하세요.">${esc(state.essay[q.id]||'')}</textarea><div class="toolbar"><button class="btn primary" data-ai-grade="${q.id}">${staticMode?'ChatGPT 채점용 복사':'AI 채점'}</button><button class="btn ghost" data-clear="${q.id}">답안 지우기</button></div><div class="grade-panel ${state.grades[q.id]?'':'hidden'}" id="grade-${q.id}">${state.grades[q.id]?gradeHtml(state.grades[q.id]):''}</div></article>`).join('');
   $$('[data-answer]').forEach(t=>t.addEventListener('input',e=>{state.essay[Number(e.target.dataset.answer)]=e.target.value;save();}));
-  $('[data-ai-grade]').forEach(b=>b.addEventListener('click',()=>location.hostname.endsWith('github.io')?copyForChatGPT(Number(b.dataset.aiGrade),b):gradeEssay(Number(b.dataset.aiGrade),b)));
+  $$('[data-ai-grade]').forEach(b=>b.addEventListener('click',()=>location.hostname.endsWith('github.io')?copyForChatGPT(Number(b.dataset.aiGrade),b):gradeEssay(Number(b.dataset.aiGrade),b)));
   $$('[data-clear]').forEach(b=>b.addEventListener('click',()=>{const id=Number(b.dataset.clear);if(confirm('이 답안을 지울까요?')){state.essay[id]='';delete state.grades[id];save();renderEssay();}}));
 }
 function gradeHtml(g){
