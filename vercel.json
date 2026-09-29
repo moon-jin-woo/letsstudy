@@ -2,8 +2,9 @@
   "version": 2,
   "rewrites": [
     {"source": "/", "destination": "/public/index.html"},
+    {"source": "/builder.html", "destination": "/public/builder.html"},
     {"source": "/styles.css", "destination": "/public/styles.css"},
     {"source": "/app.js", "destination": "/public/app.js"},
-    {"source": "/questions.json", "destination": "/public/questions.json"}
+    {"source": "/sets/:path*", "destination": "/public/sets/:path*"}
   ]
 }
