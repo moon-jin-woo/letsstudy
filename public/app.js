@@ -26,7 +26,8 @@ function renderSetSelect(){
 async function selectSet(id){
   const meta=REGISTRY.sets.find(x=>x.id===id)||REGISTRY.sets[0];
   CURRENT_SET=meta.id;
-  const r=await fetch(meta.file,{cache:'no-store'});
+  const filePath=meta.file.startsWith('/')?'.'+meta.file:meta.file;
+  const r=await fetch(filePath,{cache:'no-store'});
   if(!r.ok)throw new Error('문제 세트를 불러오지 못했습니다.');
   DATA=await r.json();loadState();applyMeta();renderSetSelect();renderDashboard();renderMcq();renderEssay();renderResults();
   const u=new URL(location.href);u.searchParams.set('set',CURRENT_SET);history.replaceState(null,'',u);
@@ -52,15 +53,51 @@ function gradeMcq(id){
 function renderEssay(){
   const view=$('#essayView');
   if(!DATA.essay.length){view.innerHTML='<div class="empty">이 세트에는 서술형 문항이 없습니다.</div>';return;}
-  view.innerHTML=`<div class="notice">AI 채점은 배포 서버에 <code>OPENAI_API_KEY</code>가 설정되어 있을 때 작동합니다. 답안과 채점 기록은 이 브라우저에 세트별로 저장됩니다.</div>`+DATA.essay.map(q=>`<article class="card" id="essay-${q.id}"><div class="unit">${esc(q.unit||'')}</div><div class="question">${q.id}. ${esc(q.q)}</div><div class="conditions"><b>&lt;조건&gt;</b><br>${esc(q.cond||'없음')}</div><textarea class="answer-box" data-answer="${q.id}" placeholder="내 답안을 작성하세요.">${esc(state.essay[q.id]||'')}</textarea><div class="toolbar"><button class="btn primary" data-ai-grade="${q.id}">AI 채점</button><button class="btn ghost" data-clear="${q.id}">답안 지우기</button></div><div class="grade-panel ${state.grades[q.id]?'':'hidden'}" id="grade-${q.id}">${state.grades[q.id]?gradeHtml(state.grades[q.id]):''}</div></article>`).join('');
+  const staticMode=location.hostname.endsWith('github.io');
+  view.innerHTML=`<div class="notice">${staticMode?'GitHub Pages에서는 직접 AI 서버를 실행할 수 없습니다. 답안을 쓴 뒤 <b>ChatGPT 채점용 복사</b>를 누르면 채점 요청문이 복사됩니다.':'AI 채점은 배포 서버에 <code>OPENAI_API_KEY</code>가 설정되어 있을 때 작동합니다.'} 답안과 채점 기록은 이 브라우저에 세트별로 저장됩니다.</div>`+DATA.essay.map(q=>`<article class="card" id="essay-${q.id}"><div class="unit">${esc(q.unit||'')}</div><div class="question">${q.id}. ${esc(q.q)}</div><div class="conditions"><b>&lt;조건&gt;</b><br>${esc(q.cond||'없음')}</div><textarea class="answer-box" data-answer="${q.id}" placeholder="내 답안을 작성하세요.">${esc(state.essay[q.id]||'')}</textarea><div class="toolbar"><button class="btn primary" data-ai-grade="${q.id}">${staticMode?'ChatGPT 채점용 복사':'AI 채점'}</button><button class="btn ghost" data-clear="${q.id}">답안 지우기</button></div><div class="grade-panel ${state.grades[q.id]?'':'hidden'}" id="grade-${q.id}">${state.grades[q.id]?gradeHtml(state.grades[q.id]):''}</div></article>`).join('');
   $$('[data-answer]').forEach(t=>t.addEventListener('input',e=>{state.essay[Number(e.target.dataset.answer)]=e.target.value;save();}));
-  $$('[data-ai-grade]').forEach(b=>b.addEventListener('click',()=>gradeEssay(Number(b.dataset.aiGrade),b)));
+  $('[data-ai-grade]').forEach(b=>b.addEventListener('click',()=>location.hostname.endsWith('github.io')?copyForChatGPT(Number(b.dataset.aiGrade),b):gradeEssay(Number(b.dataset.aiGrade),b)));
   $$('[data-clear]').forEach(b=>b.addEventListener('click',()=>{const id=Number(b.dataset.clear);if(confirm('이 답안을 지울까요?')){state.essay[id]='';delete state.grades[id];save();renderEssay();}}));
 }
 function gradeHtml(g){
   const cls=g.score>=80?'score-good':g.score>=50?'score-mid':'score-bad';
   return `<div class="grade-head"><span class="grade-score ${cls}">${g.score}점</span><span class="verdict">${esc(g.verdict)}</span></div><p><b>평가</b><br>${esc(g.feedback)}</p><p><b>충족한 요소</b></p><div class="pillbox">${(g.met||[]).map(x=>`<span class="pill good">${esc(x)}</span>`).join('')||'<span class="pill">없음</span>'}</div><p><b>보완할 요소</b></p><div class="pillbox">${(g.missed||[]).map(x=>`<span class="pill bad">${esc(x)}</span>`).join('')||'<span class="pill good">없음</span>'}</div><p><b>최소 수정 답안</b></p><div class="improved">${esc(g.improved_answer)}</div>`;
 }
+async function copyForChatGPT(id,button){
+  const q=DATA.essay.find(x=>Number(x.id)===Number(id));
+  const answer=String(state.essay[id]||'').trim();
+  if(!answer){alert('답안을 먼저 작성하세요.');return;}
+  const rubric=(q.rubric||[]).map((x,i)=>`${i+1}. ${x}`).join('\n');
+  const prompt=`다음 서술형 답안을 채점해줘. 모범답안과 표현이 달라도 의미가 같으면 인정하고, 부분점수를 허용해줘.
+
+과목: ${DATA.meta?.subject||''}
+문제 세트: ${DATA.meta?.title||''}
+
+문제:
+${q.q}
+
+조건:
+${q.cond||'없음'}
+
+모범답안:
+${q.model||''}
+
+채점 요소:
+${rubric||'없음'}
+
+내 답안:
+${answer}
+
+100점 환산 점수, 정답/부분정답/오답, 충족한 요소, 부족한 요소, 감점 이유, 최소 수정 답안 순서로 채점해줘.`;
+  try{
+    await navigator.clipboard.writeText(prompt);
+    const old=button.textContent;button.textContent='복사됨 ✓';
+    setTimeout(()=>button.textContent=old,1600);
+  }catch{
+    window.prompt('아래 내용을 복사해서 ChatGPT에 붙여넣으세요.',prompt);
+  }
+}
+
 async function gradeEssay(id,button){
   const answer=String(state.essay[id]||'').trim();if(!answer){alert('답안을 먼저 작성하세요.');return;}
   const old=button.innerHTML;button.disabled=true;button.innerHTML='<span class="spinner"></span> 채점 중…';
@@ -83,7 +120,7 @@ function switchView(v){$$('.view').forEach(x=>x.classList.add('hidden'));$$('.ta
 $$('.tab').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
 
 async function init(){
-  const rr=await fetch('/sets/index.json',{cache:'no-store'});REGISTRY=await rr.json();
+  const rr=await fetch('./sets/index.json',{cache:'no-store'});REGISTRY=await rr.json();
   const requested=new URL(location.href).searchParams.get('set');
   await selectSet(REGISTRY.sets.some(x=>x.id===requested)?requested:REGISTRY.sets[0].id);
 }
